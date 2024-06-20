@@ -19,6 +19,25 @@ const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: text
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
 
+let startDrag = new THREE.Vector2();
+window.addEventListener('pointerdown', (event) => {
+  startDrag.x = event.clientX;
+  startDrag.y = event.clientY;
+});
+
+window.addEventListener('mousemove', (event) => {
+  if (event.buttons === 1) {
+    const dx = (event.clientX - startDrag.x) / window.innerWidth;
+    const dxrad = dx * THREE.MathUtils.DEG2RAD * camera.fov * camera.aspect;
+    const dy = (event.clientY - startDrag.y) / window.innerHeight;
+    const dyrad = dy * THREE.MathUtils.DEG2RAD * camera.fov;
+    startDrag.x = event.clientX;
+    startDrag.y = event.clientY;
+    cube.rotation.y -= dxrad;
+    cube.rotation.x -= dyrad;
+  }
+});
+
 
 function animate() {
 	renderer.render( scene, camera );
