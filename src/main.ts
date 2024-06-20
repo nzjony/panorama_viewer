@@ -12,17 +12,15 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const geometry = new THREE.SphereGeometry(1, 16, 16)
+const texture = new THREE.TextureLoader().load('/panorama.jpg');
+texture.colorSpace = THREE.SRGBColorSpace;
+const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture});
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
 
-camera.position.z = 5;
 
 function animate() {
 	renderer.render( scene, camera );
-
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
 }
 renderer.setAnimationLoop( animate );
