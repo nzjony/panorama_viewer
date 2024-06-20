@@ -25,7 +25,7 @@ window.addEventListener('pointerdown', (event) => {
   startDrag.y = event.clientY;
 });
 
-window.addEventListener('mousemove', (event) => {
+window.addEventListener('pointermove', (event) => {
   if (event.buttons === 1) {
     const dx = (event.clientX - startDrag.x) / window.innerWidth;
     const dxrad = dx * THREE.MathUtils.DEG2RAD * camera.fov * camera.aspect;
@@ -37,7 +37,6 @@ window.addEventListener('mousemove', (event) => {
     cube.rotation.x -= dyrad;
   }
 });
-
 
 function animate() {
 	renderer.render( scene, camera );
