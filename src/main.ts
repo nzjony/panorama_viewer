@@ -25,17 +25,42 @@ window.addEventListener('pointerdown', (event) => {
   startDrag.y = event.clientY;
 });
 
+const minFov = 0.01;
+const maxFov = 150;
+
+// Rotates the sphere based on the offset in x / y pixels.
+const rotateSphere = (xOffset: number, yOffset: number) => {
+  const dx = xOffset / window.innerWidth;
+  const dxrad = dx * THREE.MathUtils.DEG2RAD * camera.fov * camera.aspect;
+  const dy = yOffset / window.innerHeight;
+  const dyrad = dy * THREE.MathUtils.DEG2RAD * camera.fov;
+  cube.rotation.y -= dxrad;
+  cube.rotation.x -= dyrad;
+}
+
 window.addEventListener('pointermove', (event) => {
   if (event.buttons === 1) {
-    const dx = (event.clientX - startDrag.x) / window.innerWidth;
-    const dxrad = dx * THREE.MathUtils.DEG2RAD * camera.fov * camera.aspect;
-    const dy = (event.clientY - startDrag.y) / window.innerHeight;
-    const dyrad = dy * THREE.MathUtils.DEG2RAD * camera.fov;
+    rotateSphere(event.clientX - startDrag.x, event.clientY - startDrag.y);
     startDrag.x = event.clientX;
     startDrag.y = event.clientY;
-    cube.rotation.y -= dxrad;
-    cube.rotation.x -= dyrad;
   }
+});
+
+window.addEventListener('wheel', (event) => {
+  const currentFov = camera.fov;
+  const newFov = Math.max(Math.min(currentFov + event.deltaY * 0.05, maxFov), minFov);
+  const percentChange = 1 - newFov / currentFov;
+
+  const toWheelPositionX = (event.clientX - window.innerWidth / 2);
+  const toWheelPositionY = (event.clientY - window.innerHeight / 2);
+  const shiftX = toWheelPositionX * percentChange
+  const shiftY = toWheelPositionY * percentChange
+
+  rotateSphere(-shiftX, -shiftY);
+
+  camera.fov = newFov;
+  camera.updateProjectionMatrix();
+
 });
 
 function animate() {
