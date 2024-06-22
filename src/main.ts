@@ -3,6 +3,12 @@ import * as THREE from 'three'
 const minFov = 0.01;
 const maxFov = 150;
 
+window.addEventListener('pointerdown', pointerDown);
+window.addEventListener('keydown', keyDown);
+window.addEventListener('pointermove', pointerMove);
+window.addEventListener('wheel', wheelEvent);
+
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   90,
@@ -57,7 +63,6 @@ function pointerDown(event: PointerEvent)
     clicks.push(pointCreated);
   }
 }
-window.addEventListener('pointerdown', pointerDown);
 
 function createPlaneWithPoints(points: THREE.Vector3[])
 {
@@ -91,7 +96,6 @@ function keyDown(event: KeyboardEvent)
     // clicks = [];
   }
 }
-window.addEventListener('keydown', keyDown);
 
 // Rotates the sphere based on the offset in x / y pixels.
 const rotateSphere = (xOffset: number, yOffset: number) => {
@@ -141,7 +145,6 @@ function pointerMove(event: PointerEvent)
   }
 }
 
-window.addEventListener('pointermove', pointerMove);
 
 function wheelEvent(event: WheelEvent)
 {
@@ -159,7 +162,6 @@ function wheelEvent(event: WheelEvent)
   camera.fov = newFov;
   camera.updateProjectionMatrix();
 }
-window.addEventListener('wheel', wheelEvent);
 
 function animate() {
 	renderer.render( scene, camera );
