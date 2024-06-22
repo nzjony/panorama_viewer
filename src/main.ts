@@ -43,7 +43,9 @@ function createSmallPoint()
 let clicks: any[] = [];
 
 let startDrag = new THREE.Vector2();
-window.addEventListener('pointerdown', (event) => {
+
+function pointerDown(event: PointerEvent)
+{
   startDrag.x = event.clientX;
   startDrag.y = event.clientY;
 
@@ -54,7 +56,8 @@ window.addEventListener('pointerdown', (event) => {
     point.position.copy(pointCreated);
     clicks.push(pointCreated);
   }
-});
+}
+window.addEventListener('pointerdown', pointerDown);
 
 function createPlaneWithPoints(points: THREE.Vector3[])
 {
@@ -78,7 +81,8 @@ function createPlaneWithPoints(points: THREE.Vector3[])
   return mesh;
 }
 
-window.addEventListener('keydown', (event) => {
+function keyDown(event: KeyboardEvent)
+{
   if(event.key === "Enter")
   {
     const mesh = createPlaneWithPoints(clicks);
@@ -86,7 +90,8 @@ window.addEventListener('keydown', (event) => {
     clickedPoints.clear();
     // clicks = [];
   }
-});
+}
+window.addEventListener('keydown', keyDown);
 
 // Rotates the sphere based on the offset in x / y pixels.
 const rotateSphere = (xOffset: number, yOffset: number) => {
@@ -119,7 +124,8 @@ function getSphereIntersection(event: PointerEvent)
   return null;
 }
 
-window.addEventListener('pointermove', (event) => {
+function pointerMove(event: PointerEvent)
+{
   const diffX = event.clientX - startDrag.x;
   const diffY = event.clientY - startDrag.y;
   if (event.buttons === 1) {
@@ -133,9 +139,12 @@ window.addEventListener('pointermove', (event) => {
   {
     smallPoint.position.copy(mouseLocation);
   }
-});
+}
 
-window.addEventListener('wheel', (event) => {
+window.addEventListener('pointermove', pointerMove);
+
+function wheelEvent(event: WheelEvent)
+{
   const currentFov = camera.fov;
   const newFov = Math.max(Math.min(currentFov + event.deltaY * 0.05, maxFov), minFov);
   const percentChange = 1 - newFov / currentFov;
@@ -149,8 +158,8 @@ window.addEventListener('wheel', (event) => {
 
   camera.fov = newFov;
   camera.updateProjectionMatrix();
-
-});
+}
+window.addEventListener('wheel', wheelEvent);
 
 function animate() {
 	renderer.render( scene, camera );
