@@ -8,7 +8,6 @@ window.addEventListener('keydown', keyDown);
 window.addEventListener('pointermove', pointerMove);
 window.addEventListener('wheel', wheelEvent);
 
-
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   90,
@@ -17,25 +16,36 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
+function createSphere()
+{
+  const texture = new THREE.TextureLoader().load('/panorama.jpg');
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const geometry = new THREE.SphereGeometry(1, 16, 16);
+  const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture});
+  const sphere = new THREE.Mesh(geometry, material);
+  sphere.scale.setScalar(100);
+  return sphere;
+}
+
 const renderer = new THREE.WebGLRenderer();
+const clickedPoints = new THREE.Group();
+const geometry = new THREE.SphereGeometry(1, 16, 16);
+const cube = createSphere();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const geometry = new THREE.SphereGeometry(1, 16, 16);
-const texture = new THREE.TextureLoader().load('/panorama.jpg');
-texture.colorSpace = THREE.SRGBColorSpace;
-const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture});
 const pointMaterial = new THREE.MeshBasicMaterial({color: "red"});
 pointMaterial.depthTest = false;
-const cube = new THREE.Mesh(geometry, material);
-cube.scale.setScalar(100);
 const smallPoint = new THREE.Mesh(geometry, pointMaterial);
 smallPoint.scale.setScalar(0.01);
+
 scene.add(cube);
 scene.add(smallPoint);
-
-const clickedPoints = new THREE.Group();
+// This holds the objects that represent the user's clicks on the sphere.
 scene.add(clickedPoints);
+
+let clicks: any[] = [];
+let startDrag = new THREE.Vector2();
 
 function createSmallPoint()
 {
@@ -45,10 +55,6 @@ function createSmallPoint()
   clickedPoints.add(point);
   return point;
 }
-
-let clicks: any[] = [];
-
-let startDrag = new THREE.Vector2();
 
 function pointerDown(event: PointerEvent)
 {
@@ -93,12 +99,12 @@ function keyDown(event: KeyboardEvent)
     const mesh = createPlaneWithPoints(clicks);
     cube.add(mesh);
     clickedPoints.clear();
-    // clicks = [];
   }
 }
 
 // Rotates the sphere based on the offset in x / y pixels.
-const rotateSphere = (xOffset: number, yOffset: number) => {
+function rotateSphere(xOffset: number, yOffset: number)
+{
   const dx = xOffset / window.innerWidth;
   const dxrad = dx * THREE.MathUtils.DEG2RAD * camera.fov * camera.aspect;
   const dy = yOffset / window.innerHeight;
@@ -144,7 +150,6 @@ function pointerMove(event: PointerEvent)
     smallPoint.position.copy(mouseLocation);
   }
 }
-
 
 function wheelEvent(event: WheelEvent)
 {
