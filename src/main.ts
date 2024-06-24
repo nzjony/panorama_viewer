@@ -1,20 +1,36 @@
 import * as THREE from 'three'
 
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
+import { DotScreenShader } from 'three/addons/shaders/DotScreenShader.js';
+import { RenderPixelatedPass } from 'three/addons/postprocessing/RenderPixelatedPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
 const minFov = 0.01;
 const maxFov = 150;
+
+let composer : EffectComposer;
 
 window.addEventListener('pointerdown', pointerDown);
 window.addEventListener('keydown', keyDown);
 window.addEventListener('pointermove', pointerMove);
 window.addEventListener('wheel', wheelEvent);
 
-const scene = new THREE.Scene();
+const mainScene = new THREE.Scene();
+
+//const blurScene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   90,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
 );
+
+const blurSceneGroup = new THREE.Group();
+// blurScene.add(blurSceneGroup);
+mainScene.add(blurSceneGroup)
 
 function createSphere()
 {
@@ -30,7 +46,7 @@ function createSphere()
 const renderer = new THREE.WebGLRenderer();
 const clickedPoints = new THREE.Group();
 const geometry = new THREE.SphereGeometry(1, 16, 16);
-const cube = createSphere();
+const sphere = createSphere();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -39,10 +55,10 @@ pointMaterial.depthTest = false;
 const smallPoint = new THREE.Mesh(geometry, pointMaterial);
 smallPoint.scale.setScalar(0.01);
 
-scene.add(cube);
-scene.add(smallPoint);
+mainScene.add(sphere);
+mainScene.add(smallPoint);
 // This holds the objects that represent the user's clicks on the sphere.
-scene.add(clickedPoints);
+mainScene.add(clickedPoints);
 
 let clicks: any[] = [];
 let startDrag = new THREE.Vector2();
@@ -73,7 +89,7 @@ function pointerDown(event: PointerEvent)
 function createPlaneWithPoints(points: THREE.Vector3[])
 {
   const bufferGeometry = new THREE.BufferGeometry().setFromPoints(points);
-  const planeMaterial = new THREE.MeshBasicMaterial({color: "blue", side: THREE.DoubleSide});
+  const planeMaterial = new THREE.MeshBasicMaterial({color: "blue", side: THREE.DoubleSide, transparent: true, opacity: 0.5});
   planeMaterial.depthTest = false;
   const indices = [];
   if(points.length < 4)
@@ -97,7 +113,9 @@ function keyDown(event: KeyboardEvent)
   if(event.key === "Enter")
   {
     const mesh = createPlaneWithPoints(clicks);
-    cube.add(mesh);
+    // How to do transform?
+    blurSceneGroup.add(mesh);
+    // cube.add(mesh);
     clickedPoints.clear();
   }
 }
@@ -109,8 +127,12 @@ function rotateSphere(xOffset: number, yOffset: number)
   const dxrad = dx * THREE.MathUtils.DEG2RAD * camera.fov * camera.aspect;
   const dy = yOffset / window.innerHeight;
   const dyrad = dy * THREE.MathUtils.DEG2RAD * camera.fov;
-  cube.rotation.y -= dxrad;
-  cube.rotation.x -= dyrad;
+  sphere.rotation.y -= dxrad;
+  sphere.rotation.x -= dyrad;
+
+  // The blur scene group also needs to be rotated;
+  blurSceneGroup.rotation.y -= dxrad;
+  blurSceneGroup.rotation.x -= dyrad;
 }
 
 function getSphereIntersection(event: PointerEvent)
@@ -123,7 +145,7 @@ function getSphereIntersection(event: PointerEvent)
   raycaster.setFromCamera(ndc, camera);
 
   const intersects : THREE.Intersection[] = [];
-  cube.raycast(raycaster, intersects);
+  sphere.raycast(raycaster, intersects);
 
   if (intersects.length > 0) {
     const point = intersects[0];
@@ -168,7 +190,20 @@ function wheelEvent(event: WheelEvent)
   camera.updateProjectionMatrix();
 }
 
+// Try to get this working.
+// composer = new EffectComposer(renderer);
+// composer.addPass(new RenderPass(mainScene, camera));
+
+// let blurScene1 = new RenderPixelatedPass(6, blurScene, camera, {
+// });
+// blurScene1.clear = false;
+// blurScene1.renderToScreen = true;
+// blurScene1.pixelatedMaterial.transparent = true;
+// composer.addPass(blurScene1);
+
+
 function animate() {
-	renderer.render( scene, camera );
+  renderer.render(mainScene, camera);
+  // composer.render();
 }
 renderer.setAnimationLoop( animate );
