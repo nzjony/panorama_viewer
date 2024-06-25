@@ -7,11 +7,10 @@ import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
 import { DotScreenShader } from 'three/addons/shaders/DotScreenShader.js';
 import { RenderPixelatedPass } from 'three/addons/postprocessing/RenderPixelatedPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { fragmentShader, vertexShader } from './shaders';
 
 const minFov = 0.01;
 const maxFov = 150;
-
-let composer : EffectComposer;
 
 window.addEventListener('pointerdown', pointerDown);
 window.addEventListener('keydown', keyDown);
@@ -19,6 +18,7 @@ window.addEventListener('pointermove', pointerMove);
 window.addEventListener('wheel', wheelEvent);
 
 const mainScene = new THREE.Scene();
+const blurScene = new THREE.Scene();
 
 //const blurScene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -29,8 +29,7 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 const blurSceneGroup = new THREE.Group();
-// blurScene.add(blurSceneGroup);
-mainScene.add(blurSceneGroup)
+blurScene.add(blurSceneGroup)
 
 function createSphere()
 {
@@ -63,6 +62,18 @@ mainScene.add(clickedPoints);
 let clicks: any[] = [];
 let startDrag = new THREE.Vector2();
 
+// This is smaller so it blurs
+const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth / 16, window.innerHeight / 16);
+renderer.setRenderTarget(renderTarget);
+
+// create screen space quad and render rendertarget to screen
+// const screenGeometry = new THREE.PlaneGeometry(2, 2);
+// const screenMaterial = new THREE.MeshBasicMaterial({map: renderTarget.texture});
+// const screenQuad = new THREE.Mesh(screenGeometry, screenMaterial);
+// fullScreenQuad.add(screenQuad);
+
+const fullScreenCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
 function createSmallPoint()
 {
   const material = new THREE.MeshBasicMaterial({color: "green"});
@@ -77,8 +88,11 @@ function pointerDown(event: PointerEvent)
   startDrag.x = event.clientX;
   startDrag.y = event.clientY;
 
+  if(!event.metaKey)
+  return;
+
   const pointCreated = getSphereIntersection(event);
-  if(pointCreated)
+  if(pointCreated && event.metaKey)
   {
     const point = createSmallPoint();
     point.position.copy(pointCreated);
@@ -86,11 +100,21 @@ function pointerDown(event: PointerEvent)
   }
 }
 
+let planeMaterial : THREE.ShaderMaterial;
+let planeBufferGeometry: THREE.BufferGeometry;
 function createPlaneWithPoints(points: THREE.Vector3[])
 {
-  const bufferGeometry = new THREE.BufferGeometry().setFromPoints(points);
-  const planeMaterial = new THREE.MeshBasicMaterial({color: "blue", side: THREE.DoubleSide, transparent: true, opacity: 0.5});
+  const euler = new THREE.Euler(blurSceneGroup.rotation.x, -blurSceneGroup.rotation.y, 0, 'XYZ');
+  points.forEach(point => point.applyEuler(euler));
+  planeBufferGeometry = new THREE.BufferGeometry().setFromPoints(points);
+  planeBufferGeometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(points.length * 2), 2));
+
+  planeMaterial = new THREE.ShaderMaterial({side: THREE.DoubleSide, vertexShader: vertexShader, fragmentShader: fragmentShader});
   planeMaterial.depthTest = false;
+  planeMaterial.uniforms = {
+    u_textureSize: {value: new THREE.Vector2(window.innerWidth, window.innerHeight)},
+    tDiffuse: {value: renderTarget.texture}
+  }
   const indices = [];
   if(points.length < 4)
   {
@@ -103,8 +127,8 @@ function createPlaneWithPoints(points: THREE.Vector3[])
       indices.push(0, 1, 2, 0, 2, 3);
     }
   }
-  bufferGeometry.index = new THREE.Uint16BufferAttribute(indices, 1);
-  const mesh = new THREE.Mesh(bufferGeometry, planeMaterial);
+  planeBufferGeometry.index = new THREE.Uint16BufferAttribute(indices, 1);
+  const mesh = new THREE.Mesh(planeBufferGeometry, planeMaterial);
   return mesh;
 }
 
@@ -120,6 +144,7 @@ function keyDown(event: KeyboardEvent)
   }
 }
 
+// quick hack to get the rotation of the sphere
 // Rotates the sphere based on the offset in x / y pixels.
 function rotateSphere(xOffset: number, yOffset: number)
 {
@@ -129,10 +154,13 @@ function rotateSphere(xOffset: number, yOffset: number)
   const dyrad = dy * THREE.MathUtils.DEG2RAD * camera.fov;
   sphere.rotation.y -= dxrad;
   sphere.rotation.x -= dyrad;
+  sphere.updateMatrix();
 
   // The blur scene group also needs to be rotated;
   blurSceneGroup.rotation.y -= dxrad;
   blurSceneGroup.rotation.x -= dyrad;
+
+
 }
 
 function getSphereIntersection(event: PointerEvent)
@@ -190,20 +218,46 @@ function wheelEvent(event: WheelEvent)
   camera.updateProjectionMatrix();
 }
 
-// Try to get this working.
-// composer = new EffectComposer(renderer);
-// composer.addPass(new RenderPass(mainScene, camera));
-
-// let blurScene1 = new RenderPixelatedPass(6, blurScene, camera, {
-// });
-// blurScene1.clear = false;
-// blurScene1.renderToScreen = true;
-// blurScene1.pixelatedMaterial.transparent = true;
-// composer.addPass(blurScene1);
-
-
+renderer.autoClear = false;
 function animate() {
+
+  renderer.setRenderTarget(renderTarget);
+  renderer.clear();
   renderer.render(mainScene, camera);
+
+  if(planeMaterial)
+  {
+    planeMaterial.uniforms.tDiffuse.value = renderTarget.texture;
+    planeMaterial.needsUpdate = true;
+
+    // Iterate the points of the planeBufferGeometry and compute the screen space
+    // coordinates, these are then the texture coordinates.
+    const positions = planeBufferGeometry.attributes.position.array;
+    const uvCoordinates = [];
+    for(let i = 0; i < positions.length; i+=3)
+    {
+      const position = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+      position.applyMatrix4(sphere.matrix);
+      if(i===0)
+      console.log(...position);
+      const screenPosition = position.project(camera);
+      uvCoordinates.push((screenPosition.x + 1) / 2, (screenPosition.y + 1) / 2);
+    }
+    const uv = planeBufferGeometry.attributes.uv.array;
+    for(let i = 0; i < uvCoordinates.length; i+=2)
+    {
+      uv[i] = uvCoordinates[i];
+      uv[i + 1] = uvCoordinates[i + 1];
+    }
+    planeBufferGeometry.attributes.uv.needsUpdate = true;
+  }
+
+  renderer.setRenderTarget(null);
+  renderer.clear();
+
+  renderer.render(mainScene, camera);
+  // renderer.render(fullScreenQuad, fullScreenCamera);
+  renderer.render(blurScene, camera);
   // composer.render();
 }
 renderer.setAnimationLoop( animate );
