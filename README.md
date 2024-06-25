@@ -21,6 +21,7 @@ Thanks to: https://en.wikipedia.org/wiki/Equirectangular_projection and https://
 - add eslint
 - auto deploy to nzjony github
 - add prettier
+- many bugs, only one blur supported
 
 # Demo
 ![Panoramo Viewer Demo](./PanoramoViewerDemo.mp4)

@@ -13,7 +13,6 @@ window.addEventListener('wheel', wheelEvent);
 const mainScene = new THREE.Scene();
 const blurScene = new THREE.Scene();
 
-//const blurScene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   90,
   window.innerWidth / window.innerHeight,
@@ -98,6 +97,7 @@ let planeMaterial : THREE.ShaderMaterial;
 let planeBufferGeometry: THREE.BufferGeometry;
 function createPlaneWithPoints(points: THREE.Vector3[])
 {
+  // TODO: There seems to be a bug here... investigate
   const euler = new THREE.Euler(blurSceneGroup.rotation.x, -blurSceneGroup.rotation.y, 0, 'XYZ');
   points.forEach(point => point.applyEuler(euler));
   planeBufferGeometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -106,6 +106,7 @@ function createPlaneWithPoints(points: THREE.Vector3[])
   planeMaterial = new THREE.ShaderMaterial({side: THREE.DoubleSide, vertexShader: vertexShader, fragmentShader: fragmentShader});
   planeMaterial.depthTest = false;
   planeMaterial.uniforms = {
+    // See shader.ts for these
     u_textureSize: {value: new THREE.Vector2(window.innerWidth, window.innerHeight)},
     tDiffuse: {value: renderTarget.texture}
   }
@@ -153,8 +154,6 @@ function rotateSphere(xOffset: number, yOffset: number)
   // The blur scene group also needs to be rotated;
   blurSceneGroup.rotation.y -= dxrad;
   blurSceneGroup.rotation.x -= dyrad;
-
-
 }
 
 function getSphereIntersection(event: PointerEvent)
@@ -195,6 +194,7 @@ function pointerMove(event: PointerEvent)
   }
 }
 
+// Zoom in
 function wheelEvent(event: WheelEvent)
 {
   const currentFov = camera.fov;
@@ -206,6 +206,7 @@ function wheelEvent(event: WheelEvent)
   const shiftX = toWheelPositionX * percentChange
   const shiftY = toWheelPositionY * percentChange
 
+  // Note, when zooming in, we need to shift the image also.
   rotateSphere(-shiftX, -shiftY);
 
   camera.fov = newFov;
@@ -215,10 +216,24 @@ function wheelEvent(event: WheelEvent)
 renderer.autoClear = false;
 function animate() {
 
+  // Render the main scene to the render target, this is used to show the blur effect.
   renderer.setRenderTarget(renderTarget);
   renderer.clear();
   renderer.render(mainScene, camera);
 
+  updateMaterial();
+
+  // Now render to the framebuffer
+  renderer.setRenderTarget(null);
+  renderer.clear();
+
+  renderer.render(mainScene, camera);
+  renderer.render(blurScene, camera);
+}
+renderer.setAnimationLoop( animate );
+
+function updateMaterial()
+{
   if(planeMaterial)
   {
     planeMaterial.uniforms.tDiffuse.value = renderTarget.texture;
@@ -232,9 +247,9 @@ function animate() {
     {
       const position = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
       position.applyMatrix4(sphere.matrix);
-      if(i===0)
-      console.log(...position);
       const screenPosition = position.project(camera);
+
+      // Convert from NDC to UV coordinates
       uvCoordinates.push((screenPosition.x + 1) / 2, (screenPosition.y + 1) / 2);
     }
     const uv = planeBufferGeometry.attributes.uv.array;
@@ -245,13 +260,4 @@ function animate() {
     }
     planeBufferGeometry.attributes.uv.needsUpdate = true;
   }
-
-  renderer.setRenderTarget(null);
-  renderer.clear();
-
-  renderer.render(mainScene, camera);
-  // renderer.render(fullScreenQuad, fullScreenCamera);
-  renderer.render(blurScene, camera);
-  // composer.render();
 }
-renderer.setAnimationLoop( animate );
