@@ -10,6 +10,15 @@ Developed in part with GitHub copilot
 
 Thanks to: https://en.wikipedia.org/wiki/Equirectangular_projection and https://en.wikipedia.org/wiki/360_video_projection
 
+Thanks to: https://webglfundamentals.org/webgl/lessons/webgl-image-processing.html to help with the blur in the fragment shader.
+
+# Approach
+
+The blur uses a scaled down version of the framebuffer (hence using RenderTargets)
+And there is a fragment shader which does some extra sampling, though the scaling down makes this potentially not necessary.
+Zoom / Rotate happen by rotating the sphere, the camera is always facing down the negative Z axis, this can make it
+a bit tricky to convert screen space points to work, then to the space of the sphere. Potentially this needs a rework.
+
 # Deploy
 
 1. Run `npm run build`
