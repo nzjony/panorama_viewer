@@ -1,12 +1,5 @@
 import * as THREE from 'three'
 
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
-import { DotScreenShader } from 'three/addons/shaders/DotScreenShader.js';
-import { RenderPixelatedPass } from 'three/addons/postprocessing/RenderPixelatedPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { fragmentShader, vertexShader } from './shaders';
 
 const minFov = 0.01;
@@ -72,7 +65,8 @@ renderer.setRenderTarget(renderTarget);
 // const screenQuad = new THREE.Mesh(screenGeometry, screenMaterial);
 // fullScreenQuad.add(screenQuad);
 
-const fullScreenCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+// Use this for debug if necessary
+// const fullScreenCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
 function createSmallPoint()
 {
