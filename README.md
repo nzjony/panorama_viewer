@@ -22,3 +22,5 @@ Thanks to: https://en.wikipedia.org/wiki/Equirectangular_projection and https://
 - auto deploy to nzjony github
 - add prettier
 
+# Demo
+![Panoramo Viewer Demo](./PanoramoViewerDemo.mp4)
